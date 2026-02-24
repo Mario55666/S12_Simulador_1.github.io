@@ -35,7 +35,8 @@ El aplicativo organiza el estudio de la imagen en los siguientes bloques:
 
 ## 📧 Envío de Resultados
 
-La herramienta está configurada para mostrar una confirmación de envío. En una implementación real, los datos se envían al correo docente: `c12139@utp.edu.pe`.
+La herramienta está configurada para mostrar una confirmación de envío. 
 
 ---
+
 **Semiótica de la imagen — 2026**
