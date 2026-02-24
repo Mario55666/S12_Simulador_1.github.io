@@ -1,0 +1,1040 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis de Imagen — Herramienta Educativa</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+  :root {
+    --ink: #0f0e0d;
+    --paper: #f5f1eb;
+    --cream: #ede9e1;
+    --accent: #c9372c;
+    --accent2: #2c6e9e;
+    --gold: #c9a227;
+    --line: rgba(15,14,13,0.15);
+    --shadow: 0 4px 24px rgba(15,14,13,0.12);
+    --radius: 6px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .page-header {
+    background: var(--ink);
+    color: var(--paper);
+    padding: 2rem 2rem 1.6rem;
+    border-bottom: 4px solid var(--accent);
+  }
+  .page-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 3vw, 2.4rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+  }
+  .page-header p { font-size: 0.85rem; opacity: 0.65; margin-top: 0.4rem; }
+
+  /* ── Layout ── */
+  .wrapper { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+
+  /* ── Section labels ── */
+  .section-label {
+    display: flex; align-items: center; gap: 0.75rem;
+    font-size: 0.7rem; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 1rem;
+  }
+  .section-label::before {
+    content: '';
+    display: block; width: 32px; height: 2px;
+    background: var(--accent);
+  }
+
+  /* ── Cards ── */
+  .card {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    margin-bottom: 1.2rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  /* ── Form fields ── */
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 600px) { .field-row { grid-template-columns: 1fr; } }
+  .field { display: flex; flex-direction: column; gap: 0.3rem; margin-bottom: 0.75rem; }
+  .field label { font-size: 0.8rem; font-weight: 600; color: #555; }
+  .field input, .field textarea, .field select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    padding: 0.6rem 0.8rem;
+    border: 1.5px solid var(--line);
+    border-radius: 4px;
+    background: var(--paper);
+    transition: border-color .2s, box-shadow .2s;
+    outline: none;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 3px rgba(44,110,158,0.12);
+  }
+  .field textarea { resize: vertical; min-height: 90px; }
+
+  /* ── Image selection ── */
+  .img-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.2rem;
+  }
+  .img-thumb {
+    position: relative; cursor: pointer;
+    border: 2px solid transparent;
+    border-radius: 4px; overflow: hidden;
+    transition: border-color .2s, transform .15s;
+    aspect-ratio: 4/3;
+    background: var(--cream);
+  }
+  .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .img-thumb .img-label {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(15,14,13,.75); color: #fff;
+    font-size: 0.62rem; padding: 0.25rem 0.4rem;
+    text-overflow: ellipsis; white-space: nowrap; overflow: hidden;
+  }
+  .img-thumb.selected { border-color: var(--accent); transform: scale(1.03); }
+  .img-thumb input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+
+  /* ── Stage ── */
+  .stage-wrap {
+    position: relative;
+    display: inline-block;
+    max-width: 100%;
+  }
+  .stage-img-wrap {
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    cursor: crosshair;
+    max-width: 100%;
+  }
+  .stage-img-wrap img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    max-height: 460px;
+    object-fit: contain;
+  }
+  /* Hotspot dots — placed via JS absolute to stage-wrap, outside .stage-img-wrap */
+  .hs {
+    position: absolute;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; color: #fff;
+    z-index: 100;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35);
+    animation: hsIn .3s ease;
+  }
+  @keyframes hsIn { from { transform: translate(-50%,-50%) scale(0); } to { transform: translate(-50%,-50%) scale(1); } }
+  .hs:hover { transform: translate(-50%,-50%) scale(1.2); box-shadow: 0 4px 14px rgba(0,0,0,.4); }
+  .hs .hs-del {
+    position: absolute; top: -6px; right: -6px;
+    width: 16px; height: 16px; background: #fff; color: var(--accent);
+    border-radius: 50%; font-size: 10px; font-weight: 700;
+    display: none; align-items: center; justify-content: center;
+    cursor: pointer; line-height: 1;
+  }
+  .hs:hover .hs-del { display: flex; }
+
+  /* Stage controls */
+  .stage-bar {
+    display: flex; gap: 0.5rem; flex-wrap: wrap;
+    align-items: center; margin-bottom: 0.75rem;
+  }
+  .btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem; font-weight: 600;
+    padding: 0.45rem 1rem;
+    border: none; border-radius: 4px;
+    cursor: pointer; transition: opacity .2s, transform .1s;
+  }
+  .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--ink); color: #fff; }
+  .btn-outline { background: transparent; color: var(--ink); border: 1.5px solid var(--line); }
+  .btn-big {
+    padding: 0.85rem 2rem; font-size: 1rem;
+    width: 100%; margin-top: 1rem;
+  }
+
+  /* ── Hotspot modal ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15,14,13,.55); backdrop-filter: blur(3px);
+    z-index: 1000; display: none;
+    align-items: center; justify-content: center;
+    padding: 1rem;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #fff; border-radius: 8px;
+    padding: 1.75rem; max-width: 420px; width: 100%;
+    box-shadow: 0 16px 48px rgba(0,0,0,.2);
+    animation: modalIn .25s ease;
+  }
+  @keyframes modalIn { from { transform: translateY(16px) scale(.97); opacity:0; } to { transform: none; opacity:1; } }
+  .modal h3 { font-family: 'Playfair Display', serif; margin-bottom: 1rem; }
+  .color-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.3rem; }
+  .color-swatch {
+    width: 26px; height: 26px; border-radius: 50%; cursor: pointer;
+    border: 2px solid transparent; transition: border-color .15s, transform .15s;
+  }
+  .color-swatch.active { border-color: var(--ink); transform: scale(1.15); }
+
+  /* ── Global tooltip ── */
+  #g-tip {
+    position: fixed;
+    z-index: 9999;
+    pointer-events: none;
+    background: var(--ink);
+    color: #fff;
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+    max-width: 260px;
+    min-width: 140px;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    box-shadow: 0 6px 20px rgba(0,0,0,.3);
+    opacity: 0;
+    transition: opacity .15s;
+    transform: translateX(-50%);
+  }
+  #g-tip.visible { opacity: 1; }
+  #g-tip::after {
+    content: '';
+    position: absolute;
+    border: 6px solid transparent;
+    left: 50%; transform: translateX(-50%);
+  }
+  #g-tip.above::after {
+    top: 100%; border-top-color: var(--ink);
+  }
+  #g-tip.below::after {
+    bottom: 100%; border-bottom-color: var(--ink);
+  }
+  #g-tip .tip-title { font-weight: 700; font-size: 0.85rem; margin-bottom: 0.2rem; }
+
+  /* ── Hotspot list ── */
+  .hs-list { list-style: none; margin-top: 1rem; }
+  .hs-item {
+    display: flex; align-items: center; gap: 0.6rem;
+    padding: 0.5rem 0.6rem; border-radius: 4px;
+    background: var(--paper); margin-bottom: 0.4rem;
+    font-size: 0.82rem;
+  }
+  .hs-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+  .hs-num { font-weight: 700; font-size: 0.75rem; opacity: .6; }
+
+  /* ── Question styles ── */
+  .question-block {
+    border-left: 3px solid var(--accent2);
+    padding-left: 1rem; margin-bottom: 1.5rem;
+  }
+  .question-block .q-text {
+    font-weight: 600; margin-bottom: 0.6rem; font-size: 0.9rem;
+  }
+  .radio-group label, .check-group label {
+    display: flex; align-items: flex-start; gap: 0.5rem;
+    font-size: 0.875rem; margin-bottom: 0.35rem; cursor: pointer;
+  }
+  .radio-group input, .check-group input { margin-top: 2px; flex-shrink: 0; accent-color: var(--accent); }
+
+  /* ── Progress bar ── */
+  .progress-wrap { margin-bottom: 1.5rem; }
+  .progress-bar {
+    height: 5px; background: var(--line); border-radius: 3px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: var(--accent);
+    width: 0%; transition: width .4s ease;
+  }
+  .progress-text { font-size: 0.75rem; color: #888; margin-top: 0.3rem; text-align: right; }
+
+  /* ── Success banner ── */
+  .success-banner {
+    display: none; background: #1a7a4a; color: #fff;
+    border-radius: 6px; padding: 1.25rem 1.5rem;
+    text-align: center; margin-bottom: 1.5rem;
+  }
+  .success-banner.show { display: block; }
+  .success-banner p { font-size: 0.9rem; opacity: .9; margin-top: 0.3rem; }
+
+  /* ── Tab nav ── */
+  .tab-nav { display: flex; gap: 0; border-bottom: 2px solid var(--line); margin-bottom: 1.5rem; }
+  .tab-btn {
+    background: none; border: none; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; font-size: 0.85rem; font-weight: 600;
+    padding: 0.6rem 1.2rem; color: #888;
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
+    transition: color .2s, border-color .2s;
+  }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── Placeholder text ── */
+  .placeholder-msg {
+    text-align: center; padding: 2rem;
+    color: #aaa; font-size: 0.9rem;
+    border: 2px dashed var(--line); border-radius: 4px;
+  }
+
+  /* ── Info note ── */
+  .info-note {
+    background: rgba(44,110,158,.08);
+    border: 1px solid rgba(44,110,158,.2);
+    border-radius: 4px; padding: 0.6rem 0.9rem;
+    font-size: 0.8rem; color: var(--accent2);
+    margin-bottom: 1rem;
+  }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .page-header { padding: 1.2rem; }
+    .card { padding: 1.2rem; }
+    .wrapper { padding: 1rem 0.75rem 3rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Global Tooltip (created in JS, but slot here) -->
+
+<header class="page-header">
+  <h1>Ficha de Análisis de Imagen<br>Sistemas y Códigos Visuales</h1>
+  <p>Análisis narrativo, discursivo e iconográfico · Semiótica de la imagen — 2026</p>
+</header>
+
+<div class="wrapper">
+
+  <!-- Progress -->
+  <div class="progress-wrap">
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    <div class="progress-text" id="progress-text">0 / 6 secciones completadas</div>
+  </div>
+
+  <!-- Success banner -->
+  <div class="success-banner" id="success-banner">
+    <strong>✓ Formulario enviado correctamente</strong>
+    <p>Recibirás una copia en tu correo y el docente recibirá tu análisis en c12139@utp.edu.pe</p>
+  </div>
+
+  <form id="main-form" novalidate>
+
+    <!-- ─── SECCIÓN 1: Datos del estudiante ─── -->
+    <div class="card" data-section="datos">
+      <div class="section-label">Sección 1</div>
+      <h2>Datos del Estudiante</h2>
+      <div class="field-row">
+        <div class="field">
+          <label for="s-nombre">Nombre completo <span style="color:var(--accent)">*</span></label>
+          <input type="text" id="s-nombre" name="nombre" placeholder="Ej. Juan García López" required>
+        </div>
+        <div class="field">
+          <label for="s-correo">Correo electrónico <span style="color:var(--accent)">*</span></label>
+          <input type="email" id="s-correo" name="correo" placeholder="correo@dominio.com" required>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="s-codigo">Código de estudiante</label>
+          <input type="text" id="s-codigo" name="codigo" placeholder="U20xxxxxxx">
+        </div>
+        <div class="field">
+          <label for="s-grupo">Grupo / Sección</label>
+          <input type="text" id="s-grupo" name="grupo" placeholder="Ej. G1 — Turno mañana">
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SECCIÓN 2: Selección de imagen ─── -->
+    <div class="card" data-section="imagen">
+      <div class="section-label">Sección 2</div>
+      <h2>Selecciona la Imagen a Analizar</h2>
+      <p style="font-size:.83rem;color:#666;margin-bottom:1rem;">Haz clic en la imagen que te fue asignada o que eliges analizar.</p>
+      <div class="img-grid" id="img-grid">
+        <!-- Injected by JS -->
+      </div>
+      <div id="stage-container" style="margin-top:1rem;display:none;">
+        <div class="info-note">🖱️ <strong>Modo hotspot:</strong> activa "Añadir punto" y haz clic sobre la imagen para marcar elementos clave. Pasa el cursor sobre cada punto para ver su descripción.</div>
+        <div class="stage-bar">
+          <button type="button" class="btn btn-primary" id="btn-add-hs" onclick="toggleAddMode()">＋ Añadir punto</button>
+          <button type="button" class="btn btn-outline" id="btn-clear-hs" onclick="clearHotspots()">✕ Limpiar puntos</button>
+          <span id="hs-mode-label" style="font-size:.78rem;color:#888;margin-left:.5rem;"></span>
+        </div>
+        <!-- stage-wrap contains image + hotspots side by side in positioning context -->
+        <div id="stage-wrap" class="stage-wrap">
+          <div class="stage-img-wrap" id="stage-img-wrap">
+            <img id="stage-img" src="" alt="Imagen seleccionada">
+          </div>
+          <!-- hotspots appended here by JS -->
+        </div>
+        <ul class="hs-list" id="hs-list"></ul>
+      </div>
+    </div>
+
+    <!-- ─── SECCIÓN 3: Códigos Narrativos ─── -->
+    <div class="card" data-section="narrativo">
+      <div class="section-label">Sección 3 — Análisis</div>
+      <h2>Bloque 1: Códigos Narrativos</h2>
+
+      <div class="question-block">
+        <div class="q-text">3.1 ¿Qué historia cuenta o sugiere la imagen? <span style="color:var(--accent)">*</span></div>
+        <div class="field">
+          <textarea name="q_narr_historia" placeholder="Describe la historia o relato visual que transmite la imagen..." required></textarea>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">3.2 Identifica los elementos narrativos presentes <span style="color:var(--accent)">*</span></div>
+        <div class="check-group" id="q32">
+          <label><input type="checkbox" name="q_narr_elem" value="personajes"> Personajes / actantes</label>
+          <label><input type="checkbox" name="q_narr_elem" value="espacio"> Espacio / escenario</label>
+          <label><input type="checkbox" name="q_narr_elem" value="accion"> Acción o movimiento</label>
+          <label><input type="checkbox" name="q_narr_elem" value="conflicto"> Conflicto o tensión</label>
+          <label><input type="checkbox" name="q_narr_elem" value="resolucion"> Resolución o desenlace</label>
+          <label><input type="checkbox" name="q_narr_elem" value="ninguno"> No hay narrativa explícita</label>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">3.3 ¿Qué tipo de narrativa predomina? <span style="color:var(--accent)">*</span></div>
+        <div class="radio-group" id="q33">
+          <label><input type="radio" name="q_narr_tipo" value="lineal"> Lineal (inicio–desarrollo–fin claro)</label>
+          <label><input type="radio" name="q_narr_tipo" value="eliptica"> Elíptica (se omiten partes, el espectador completa)</label>
+          <label><input type="radio" name="q_narr_tipo" value="suspendida"> Momento suspendido (un instante sin antes ni después)</label>
+          <label><input type="radio" name="q_narr_tipo" value="no_aplica"> No aplica / imagen abstracta</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SECCIÓN 4: Códigos Discursivos ─── -->
+    <div class="card" data-section="discursivo">
+      <div class="section-label">Sección 4 — Análisis</div>
+      <h2>Bloque 2: Códigos Discursivos</h2>
+
+      <div class="question-block">
+        <div class="q-text">4.1 ¿Quién habla (enunciador) y a quién (enunciatario)? <span style="color:var(--accent)">*</span></div>
+        <div class="field">
+          <textarea name="q_disc_enunciacion" placeholder="Ej. La marca habla a jóvenes urbanos de 18–30 años..." required></textarea>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">4.2 ¿Cuál es la intención discursiva principal? <span style="color:var(--accent)">*</span></div>
+        <div class="radio-group" id="q42">
+          <label><input type="radio" name="q_disc_intencion" value="informar"> Informar</label>
+          <label><input type="radio" name="q_disc_intencion" value="convencer"> Convencer / persuadir</label>
+          <label><input type="radio" name="q_disc_intencion" value="conmover"> Conmover / emocionar</label>
+          <label><input type="radio" name="q_disc_intencion" value="movilizar"> Movilizar / llamar a la acción</label>
+          <label><input type="radio" name="q_disc_intencion" value="legitimar"> Legitimar / reforzar valores</label>
+          <label><input type="radio" name="q_disc_intencion" value="entretener"> Entretener / humor</label>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">4.3 ¿Qué otros discursos se convocan o combaten? (Interdiscursividad) <span style="color:var(--accent)">*</span></div>
+        <div class="field">
+          <textarea name="q_disc_interdiscurso" placeholder="¿La imagen dialoga con otros discursos culturales, de género, políticos, etc.? Explica..." required></textarea>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">4.4 ¿Qué tono usa la imagen?</div>
+        <div class="radio-group">
+          <label><input type="radio" name="q_disc_tono" value="humoristico"> Humorístico / irónico</label>
+          <label><input type="radio" name="q_disc_tono" value="serio"> Serio / formal</label>
+          <label><input type="radio" name="q_disc_tono" value="provocador"> Provocador / transgresor</label>
+          <label><input type="radio" name="q_disc_tono" value="emocional"> Emotivo / sentimental</label>
+          <label><input type="radio" name="q_disc_tono" value="neutro"> Neutro / informativo</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SECCIÓN 5: Códigos Iconográficos ─── -->
+    <div class="card" data-section="iconografico">
+      <div class="section-label">Sección 5 — Análisis</div>
+      <h2>Bloque 3: Códigos Iconográficos</h2>
+
+      <div class="question-block">
+        <div class="q-text">5.1 ¿Qué símbolos, motivos o atributos reconocibles aparecen? <span style="color:var(--accent)">*</span></div>
+        <div class="field">
+          <textarea name="q_ico_simbolos" placeholder="Lista y describe los símbolos visuales presentes (objetos, colores emblemáticos, gestos, personajes reconocibles)..." required></textarea>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">5.2 ¿Qué significan en este contexto cultural? <span style="color:var(--accent)">*</span></div>
+        <div class="field">
+          <textarea name="q_ico_significado" placeholder="Explica el significado cultural de los símbolos identificados..." required></textarea>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">5.3 ¿Es posible una lectura iconológica profunda? <span style="color:var(--accent)">*</span></div>
+        <div class="radio-group" id="q53">
+          <label><input type="radio" name="q_ico_iconologia" value="si"> Sí — hay valores, ideología o imaginarios más profundos</label>
+          <label><input type="radio" name="q_ico_iconologia" value="parcial"> Parcialmente — hay algunos elementos profundos</label>
+          <label><input type="radio" name="q_ico_iconologia" value="no"> No — la imagen es principalmente denotativa</label>
+        </div>
+        <div class="field" style="margin-top:.75rem;">
+          <label>Desarrollo (obligatorio si respondiste Sí o Parcialmente):</label>
+          <textarea name="q_ico_iconologia_dev" placeholder="¿Qué valores, creencias o imaginarios sociales se refuerzan o cuestionan?"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── SECCIÓN 6: Micro-diseño ─── -->
+    <div class="card" data-section="microdiseno">
+      <div class="section-label">Sección 6 — Producción</div>
+      <h2>Actividad 2: Micro-diseño (Esbozo de Imagen con Tres Capas)</h2>
+
+      <div class="question-block">
+        <div class="q-text">6.1 ¿Qué objetivo comunicacional elige tu equipo? <span style="color:var(--accent)">*</span></div>
+        <div class="radio-group" id="q61">
+          <label><input type="radio" name="q_md_objetivo" value="ambiental"> Sensibilizar sobre un tema ambiental</label>
+          <label><input type="radio" name="q_md_objetivo" value="cultural"> Promocionar un evento cultural</label>
+          <label><input type="radio" name="q_md_objetivo" value="academico"> Invitar a participar en un programa académico</label>
+          <label><input type="radio" name="q_md_objetivo" value="otro"> Otro (especificar abajo)</label>
+        </div>
+        <div class="field" style="margin-top:.5rem;">
+          <input type="text" name="q_md_objetivo_otro" placeholder="Si elegiste 'Otro', especifica aquí...">
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">6.2 Capa Narrativa: ¿Qué historia mínima se sugiere? <span style="color:var(--accent)">*</span></div>
+        <div class="field">
+          <textarea name="q_md_narrativa" placeholder="¿Quién aparece? ¿Dónde? ¿Haciendo qué? Describe la micro-historia..." required></textarea>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">6.3 Capa Discursiva: ¿Qué postura expresa la imagen? <span style="color:var(--accent)">*</span></div>
+        <div class="field">
+          <textarea name="q_md_discursiva" placeholder="¿Desde quién se habla y a quién? ¿Con qué tono? ¿Qué quiere lograr?" required></textarea>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">6.4 Capa Iconográfica: ¿Qué símbolos, colores y motivos usarán? <span style="color:var(--accent)">*</span></div>
+        <div class="field">
+          <textarea name="q_md_iconografica" placeholder="¿Por qué eligieron esos símbolos? ¿Qué significan para el público objetivo?" required></textarea>
+        </div>
+      </div>
+
+      <div class="question-block">
+        <div class="q-text">6.5 Reflexión final: ¿Qué aprendizaje te deja este análisis?</div>
+        <div class="field">
+          <textarea name="q_md_reflexion" placeholder="Comparte tu reflexión personal o de equipo sobre el ejercicio..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── Submit ─── -->
+    <div class="card" style="background:var(--ink);border-color:var(--ink);">
+      <p style="color:#ccc;font-size:.82rem;margin-bottom:1rem;">Al enviar, se remitirá una copia a tu correo y el formulario completo al docente en <strong style="color:var(--gold)">c12139@utp.edu.pe</strong>.</p>
+      <div id="form-errors" style="color:#f87171;font-size:.82rem;margin-bottom:.75rem;display:none;"></div>
+      <button type="submit" class="btn btn-primary btn-big">
+        Enviar Análisis Completo →
+      </button>
+    </div>
+
+  </form>
+</div>
+
+<!-- ─── Hotspot Modal ─── -->
+<div class="modal-overlay" id="hs-modal">
+  <div class="modal">
+    <h3>Configurar Punto de Análisis</h3>
+    <div class="field">
+      <label>Etiqueta breve <span style="color:var(--accent)">*</span></label>
+      <input type="text" id="hs-tag" placeholder="Ej. Logo, Color rojo, Personaje...">
+    </div>
+    <div class="field">
+      <label>Título / Concepto</label>
+      <input type="text" id="hs-title" placeholder="Ej. Símbolo de peligro">
+    </div>
+    <div class="field">
+      <label>Descripción del elemento</label>
+      <textarea id="hs-desc" rows="3" placeholder="¿Qué representa? ¿Qué código visual activa?"></textarea>
+    </div>
+    <div class="field">
+      <label>Color del punto</label>
+      <div class="color-row" id="color-row">
+        <div class="color-swatch active" data-color="#c9372c" style="background:#c9372c"></div>
+        <div class="color-swatch" data-color="#2c6e9e" style="background:#2c6e9e"></div>
+        <div class="color-swatch" data-color="#1a7a4a" style="background:#1a7a4a"></div>
+        <div class="color-swatch" data-color="#c9a227" style="background:#c9a227"></div>
+        <div class="color-swatch" data-color="#7c3aed" style="background:#7c3aed"></div>
+        <div class="color-swatch" data-color="#0f0e0d" style="background:#0f0e0d"></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:.75rem;margin-top:1.2rem;">
+      <button type="button" class="btn btn-primary" onclick="confirmHotspot()">Guardar punto</button>
+      <button type="button" class="btn btn-outline" onclick="closeHsModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Images data ───────────────────────────────────────────────────────
+const IMAGES = [
+  { id:'axe',      src:'Axe.jpg',      label:'Axe — "The Cleaner You Are"',     desc:'Campaña de desodorante con doble sentido' },
+  { id:'bmw',      src:'BMW.jpg',       label:'BMW — "More Power, Less Consumption"', desc:'Publicidad de eficiencia vehicular' },
+  { id:'netflix',  src:'netflix.jpg',   label:'Netflix — Sex Education T2',      desc:'Valla publicitaria en Madrid' },
+  { id:'pajaros',  src:'pájaros.jpg',   label:'Pienso para Pájaros',             desc:'"Turns Birdie into man\'s best friend"' },
+  { id:'raid',     src:'Raid.jpg',      label:'Raid — "Volants ou rampants"',    desc:'Spider-Man caído por insecticida' },
+  { id:'uber',     src:'uber.jpg',      label:'Uber — "La capital de la caña"',  desc:'Valla publicitaria en Madrid' },
+];
+
+// ─── State ─────────────────────────────────────────────────────────────
+let selectedImage = null;
+let hotspots = [];       // { id, x, y, tag, title, desc, color, el }
+let pendingPos = null;   // { x, y } pct relative to image
+let addMode = false;
+let selectedColor = '#c9372c';
+let hsCounter = 0;
+
+// ─── Global Tooltip ────────────────────────────────────────────────────
+const gTip = document.createElement('div');
+gTip.id = 'g-tip';
+gTip.innerHTML = '<div class="tip-title" id="gtip-title"></div><div id="gtip-desc"></div>';
+document.body.appendChild(gTip);
+
+function positionTip(el) {
+  const r = el.getBoundingClientRect();
+  const cx = r.left + r.width / 2;
+  const cy = r.top + r.height / 2;
+  const tipH = 90; // approx
+  const margin = 10;
+  const vph = window.innerHeight;
+  const vpw = window.innerWidth;
+
+  let top, cls;
+  if (cy - tipH - margin > 0) {
+    top = cy - r.height / 2 - tipH - 10;
+    cls = 'above';
+  } else {
+    top = cy + r.height / 2 + 10;
+    cls = 'below';
+  }
+  let left = cx;
+  const tipW = 220;
+  left = Math.max(tipW/2 + margin, Math.min(vpw - tipW/2 - margin, left));
+
+  gTip.style.left = left + 'px';
+  gTip.style.top = top + 'px';
+  gTip.className = cls;
+  gTip.classList.add('visible');
+}
+
+// ─── Build image grid ──────────────────────────────────────────────────
+const grid = document.getElementById('img-grid');
+IMAGES.forEach(img => {
+  const thumb = document.createElement('div');
+  thumb.className = 'img-thumb';
+  thumb.dataset.id = img.id;
+  thumb.innerHTML = `
+    <img src="${img.src}" alt="${img.label}" loading="lazy">
+    <div class="img-label">${img.label}</div>
+    <input type="radio" name="imagen_sel" value="${img.id}">
+  `;
+  thumb.addEventListener('click', () => selectImage(img));
+  grid.appendChild(thumb);
+});
+
+function selectImage(img) {
+  selectedImage = img;
+  document.querySelectorAll('.img-thumb').forEach(t => {
+    t.classList.toggle('selected', t.dataset.id === img.id);
+    t.querySelector('input').checked = t.dataset.id === img.id;
+  });
+  document.getElementById('stage-img').src = img.src;
+  document.getElementById('stage-img').alt = img.label;
+  document.getElementById('stage-container').style.display = 'block';
+  clearHotspots();
+  updateProgress();
+}
+
+// ─── Hotspot management ────────────────────────────────────────────────
+function toggleAddMode() {
+  addMode = !addMode;
+  const btn = document.getElementById('btn-add-hs');
+  const lbl = document.getElementById('hs-mode-label');
+  if (addMode) {
+    btn.textContent = '✕ Cancelar';
+    btn.classList.replace('btn-primary','btn-outline');
+    document.getElementById('stage-img-wrap').style.cursor = 'crosshair';
+    lbl.textContent = 'Haz clic sobre la imagen para marcar un elemento';
+  } else {
+    btn.textContent = '＋ Añadir punto';
+    btn.classList.replace('btn-outline','btn-primary');
+    document.getElementById('stage-img-wrap').style.cursor = 'default';
+    lbl.textContent = '';
+  }
+}
+
+document.getElementById('stage-img-wrap').addEventListener('click', function(e) {
+  if (!addMode) return;
+  const rect = this.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * 100;
+  const y = ((e.clientY - rect.top) / rect.height) * 100;
+  pendingPos = { x, y };
+  openHsModal();
+});
+
+function openHsModal() {
+  document.getElementById('hs-tag').value = '';
+  document.getElementById('hs-title').value = '';
+  document.getElementById('hs-desc').value = '';
+  document.querySelectorAll('.color-swatch').forEach(s => {
+    s.classList.toggle('active', s.dataset.color === selectedColor);
+  });
+  document.getElementById('hs-modal').classList.add('open');
+  setTimeout(() => document.getElementById('hs-tag').focus(), 100);
+}
+function closeHsModal() {
+  document.getElementById('hs-modal').classList.remove('open');
+  pendingPos = null;
+}
+document.getElementById('hs-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeHsModal();
+});
+
+document.querySelectorAll('.color-swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    selectedColor = sw.dataset.color;
+    document.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+  });
+});
+
+function confirmHotspot() {
+  const tag = document.getElementById('hs-tag').value.trim();
+  if (!tag) { document.getElementById('hs-tag').focus(); return; }
+  const title = document.getElementById('hs-title').value.trim();
+  const desc  = document.getElementById('hs-desc').value.trim();
+  hsCounter++;
+  const hs = {
+    id: 'hs' + hsCounter,
+    x: pendingPos.x, y: pendingPos.y,
+    tag, title, desc, color: selectedColor
+  };
+  createHsDom(hs);
+  hotspots.push(hs);
+  renderHsList();
+  closeHsModal();
+  if (addMode) toggleAddMode();
+}
+
+function createHsDom(hs) {
+  const stageWrap = document.getElementById('stage-wrap');
+  const imgWrap   = document.getElementById('stage-img-wrap');
+
+  // Position relative to stageWrap, but matching imgWrap's visual position
+  const dot = document.createElement('div');
+  dot.className = 'hs';
+  dot.id = hs.id;
+  dot.style.background = hs.color;
+  dot.textContent = hotspots.length + 1; // will be re-numbered
+
+  // Delete button
+  const del = document.createElement('span');
+  del.className = 'hs-del';
+  del.textContent = '×';
+  del.addEventListener('click', (e) => { e.stopPropagation(); removeHotspot(hs.id); });
+  dot.appendChild(del);
+
+  // Position: we must map hs.x/hs.y (relative to img) to stageWrap coords
+  function reposition() {
+    const iwr = imgWrap.getBoundingClientRect();
+    const swr = stageWrap.getBoundingClientRect();
+    const left = (iwr.left - swr.left) + (hs.x / 100) * iwr.width;
+    const top  = (iwr.top  - swr.top)  + (hs.y / 100) * iwr.height;
+    dot.style.left = left + 'px';
+    dot.style.top  = top  + 'px';
+  }
+
+  stageWrap.appendChild(dot);
+  // Need a tick for layout
+  requestAnimationFrame(reposition);
+  window.addEventListener('resize', reposition);
+  dot._reposition = reposition;
+
+  // Tooltip events
+  dot.addEventListener('mouseenter', () => {
+    document.getElementById('gtip-title').textContent = hs.title || hs.tag;
+    document.getElementById('gtip-desc').textContent  = hs.desc || '';
+    positionTip(dot);
+  });
+  dot.addEventListener('mouseleave', () => {
+    gTip.classList.remove('visible');
+  });
+
+  hs.el = dot;
+  hs._reposition = reposition;
+}
+
+function removeHotspot(id) {
+  const idx = hotspots.findIndex(h => h.id === id);
+  if (idx === -1) return;
+  const hs = hotspots[idx];
+  if (hs.el) hs.el.remove();
+  window.removeEventListener('resize', hs._reposition);
+  hotspots.splice(idx, 1);
+  renumberHsDots();
+  renderHsList();
+}
+
+function renumberHsDots() {
+  hotspots.forEach((h, i) => {
+    if (h.el) {
+      // Remove text nodes, keep delete btn
+      h.el.childNodes.forEach(n => { if (n.nodeType === 3) n.remove(); });
+      h.el.insertAdjacentText('afterbegin', String(i + 1));
+    }
+  });
+}
+
+function clearHotspots() {
+  hotspots.forEach(h => {
+    if (h.el) h.el.remove();
+    window.removeEventListener('resize', h._reposition);
+  });
+  hotspots = [];
+  renderHsList();
+  hsCounter = 0;
+}
+
+function renderHsList() {
+  const ul = document.getElementById('hs-list');
+  ul.innerHTML = '';
+  if (hotspots.length === 0) {
+    ul.innerHTML = '<li style="font-size:.78rem;color:#aaa;padding:.3rem 0;">Sin puntos marcados aún.</li>';
+    return;
+  }
+  hotspots.forEach((h, i) => {
+    const li = document.createElement('li');
+    li.className = 'hs-item';
+    li.innerHTML = `
+      <span class="hs-dot" style="background:${h.color}"></span>
+      <span class="hs-num">${i+1}.</span>
+      <span><strong>${h.tag}</strong>${h.title ? ' — ' + h.title : ''}${h.desc ? '<br><small style="color:#666">' + h.desc + '</small>' : ''}</span>
+    `;
+    ul.appendChild(li);
+  });
+}
+
+// ─── Progress ──────────────────────────────────────────────────────────
+const SECTIONS = ['datos','imagen','narrativo','discursivo','iconografico','microdiseno'];
+function updateProgress() {
+  let done = 0;
+  // datos: nombre + correo filled
+  if (document.getElementById('s-nombre').value.trim() && document.getElementById('s-correo').value.trim()) done++;
+  // imagen selected
+  if (selectedImage) done++;
+  // narrativo: 3 fields
+  const fn = f => f.value.trim();
+  if (fn(document.querySelector('[name=q_narr_historia]'))
+      && document.querySelector('[name=q_narr_tipo]:checked')
+      && document.querySelectorAll('[name=q_narr_elem]:checked').length > 0) done++;
+  // discursivo
+  if (fn(document.querySelector('[name=q_disc_enunciacion]'))
+      && document.querySelector('[name=q_disc_intencion]:checked')
+      && fn(document.querySelector('[name=q_disc_interdiscurso]'))) done++;
+  // iconografico
+  if (fn(document.querySelector('[name=q_ico_simbolos]'))
+      && fn(document.querySelector('[name=q_ico_significado]'))
+      && document.querySelector('[name=q_ico_iconologia]:checked')) done++;
+  // microdiseno
+  if (document.querySelector('[name=q_md_objetivo]:checked')
+      && fn(document.querySelector('[name=q_md_narrativa]'))
+      && fn(document.querySelector('[name=q_md_discursiva]'))
+      && fn(document.querySelector('[name=q_md_iconografica]'))) done++;
+
+  document.getElementById('progress-fill').style.width = (done/6*100) + '%';
+  document.getElementById('progress-text').textContent = `${done} / 6 secciones completadas`;
+}
+
+document.getElementById('main-form').addEventListener('input', updateProgress);
+
+// ─── Form validation & submission ─────────────────────────────────────
+document.getElementById('main-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const errors = [];
+
+  if (!document.getElementById('s-nombre').value.trim()) errors.push('Nombre completo es obligatorio.');
+  const emailVal = document.getElementById('s-correo').value.trim();
+  if (!emailVal || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) errors.push('Correo electrónico válido es obligatorio.');
+  if (!selectedImage) errors.push('Debes seleccionar una imagen a analizar.');
+
+  // Required textareas & radios
+  const required = [
+    ['q_narr_historia','Historia narrativa (3.1)'],
+    ['q_narr_tipo','Tipo de narrativa (3.3)'],
+    ['q_disc_enunciacion','Enunciación (4.1)'],
+    ['q_disc_intencion','Intención discursiva (4.2)'],
+    ['q_disc_interdiscurso','Interdiscursividad (4.3)'],
+    ['q_ico_simbolos','Símbolos iconográficos (5.1)'],
+    ['q_ico_significado','Significado cultural (5.2)'],
+    ['q_ico_iconologia','Lectura iconológica (5.3)'],
+    ['q_md_objetivo','Objetivo comunicacional (6.1)'],
+    ['q_md_narrativa','Capa narrativa (6.2)'],
+    ['q_md_discursiva','Capa discursiva (6.3)'],
+    ['q_md_iconografica','Capa iconográfica (6.4)'],
+  ];
+
+  required.forEach(([name, label]) => {
+    const radio = document.querySelector(`[name=${name}]:checked`);
+    const textarea = document.querySelector(`[name=${name}]`);
+    if (radio === null && (!textarea || !textarea.value.trim())) {
+      errors.push(`Campo obligatorio: ${label}`);
+    }
+  });
+
+  // Check checkboxes q_narr_elem
+  if (document.querySelectorAll('[name=q_narr_elem]:checked').length === 0) {
+    errors.push('Selecciona al menos un elemento narrativo (3.2).');
+  }
+
+  const errDiv = document.getElementById('form-errors');
+  if (errors.length > 0) {
+    errDiv.style.display = 'block';
+    errDiv.innerHTML = errors.map(e => `• ${e}`).join('<br>');
+    errDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  errDiv.style.display = 'none';
+
+  // ── Build email body ─────────────────────────────────────────────────
+  const fd = new FormData(this);
+  const getData = k => fd.getAll(k).join(', ') || fd.get(k) || '(no especificado)';
+
+  const body = `
+FICHA DE ANÁLISIS DE IMAGEN — COMUNICACIÓN VISUAL UTP
+======================================================
+
+DATOS DEL ESTUDIANTE
+--------------------
+Nombre:  ${fd.get('nombre')}
+Correo:  ${fd.get('correo')}
+Código:  ${fd.get('codigo') || '—'}
+Grupo:   ${fd.get('grupo') || '—'}
+Imagen analizada: ${selectedImage?.label || '—'}
+
+HOTSPOTS MARCADOS (${hotspots.length})
+${hotspots.map((h,i) => `  ${i+1}. [${h.tag}] ${h.title} — ${h.desc}`).join('\n') || '  Ninguno'}
+
+BLOQUE 1: CÓDIGOS NARRATIVOS
+-----------------------------
+3.1 Historia: ${getData('q_narr_historia')}
+3.2 Elementos: ${getData('q_narr_elem')}
+3.3 Tipo de narrativa: ${getData('q_narr_tipo')}
+
+BLOQUE 2: CÓDIGOS DISCURSIVOS
+------------------------------
+4.1 Enunciación: ${getData('q_disc_enunciacion')}
+4.2 Intención: ${getData('q_disc_intencion')}
+4.3 Interdiscursividad: ${getData('q_disc_interdiscurso')}
+4.4 Tono: ${getData('q_disc_tono')}
+
+BLOQUE 3: CÓDIGOS ICONOGRÁFICOS
+---------------------------------
+5.1 Símbolos: ${getData('q_ico_simbolos')}
+5.2 Significado: ${getData('q_ico_significado')}
+5.3 Iconología: ${getData('q_ico_iconologia')}
+    Desarrollo: ${getData('q_ico_iconologia_dev')}
+
+MICRO-DISEÑO
+-------------
+6.1 Objetivo: ${getData('q_md_objetivo')} ${fd.get('q_md_objetivo_otro') ? '(' + fd.get('q_md_objetivo_otro') + ')' : ''}
+6.2 Narrativa: ${getData('q_md_narrativa')}
+6.3 Discursiva: ${getData('q_md_discursiva')}
+6.4 Iconográfica: ${getData('q_md_iconografica')}
+6.5 Reflexión: ${getData('q_md_reflexion')}
+`.trim();
+
+  // ── Send via mailto (fallback) + FormSubmit.co ───────────────────────
+  const to = encodeURIComponent(`${fd.get('correo')},c12139@utp.edu.pe`);
+  const subj = encodeURIComponent(`Análisis de Imagen — ${fd.get('nombre')} — ${selectedImage?.label}`);
+  const mailBody = encodeURIComponent(body);
+
+  // Attempt FormSubmit (backend email service, no server required)
+  const fsForm = document.createElement('form');
+  fsForm.method = 'POST';
+  fsForm.action = `https://formsubmit.co/${encodeURIComponent(fd.get('correo'))}`;
+  fsForm.target = '_blank';
+  fsForm.style.display = 'none';
+
+  const addField = (name, value) => {
+    const i = document.createElement('input');
+    i.type = 'hidden'; i.name = name; i.value = value;
+    fsForm.appendChild(i);
+  };
+
+  addField('_subject', `Análisis de Imagen — ${fd.get('nombre')}`);
+  addField('_cc', 'c12139@utp.edu.pe');
+  addField('_template', 'box');
+  addField('_next', window.location.href);
+  addField('nombre', fd.get('nombre'));
+  addField('correo', fd.get('correo'));
+  addField('imagen', selectedImage?.label || '—');
+  addField('analisis_completo', body);
+
+  document.body.appendChild(fsForm);
+
+  // Show success immediately (async UX)
+  document.getElementById('success-banner').classList.add('show');
+  document.getElementById('success-banner').scrollIntoView({ behavior: 'smooth' });
+  updateProgress();
+
+  // Also open mailto as secondary channel
+  setTimeout(() => {
+    window.open(`mailto:${to}?subject=${subj}&body=${mailBody}`, '_blank');
+    fsForm.submit();
+    document.body.removeChild(fsForm);
+  }, 600);
+});
+
+// ─── Init ──────────────────────────────────────────────────────────────
+renderHsList();
+updateProgress();
+</script>
+</body>
+</html>
